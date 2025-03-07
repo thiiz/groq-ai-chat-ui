@@ -1,4 +1,4 @@
-# ZIHT AI Chat
+# GROQ AI Chat
 ZIHT AI Chat is a modern web application that allows you to interact with powerful AI models through the Groq API. This application provides a clean, intuitive interface for chatting with AI models, managing user profiles, and customizing AI response parameters.
 
 ## Features

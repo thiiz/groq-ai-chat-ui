@@ -3,13 +3,41 @@ import { Message } from "@/@types/message";
 import { getActiveApiKey } from "@/lib/profile";
 import { Dispatch, FC, FormEvent, SetStateAction, useState } from "react";
 
+// Function to estimate tokens in a string (rough approximation)
+const estimateTokens = (text: string): number => {
+    // GPT models typically use ~4 characters per token on average
+    return Math.ceil(text.length / 4);
+};
+
+// Function to trim message history to fit context window
+const trimMessageHistory = (messages: Message[], maxTokens: number): Message[] => {
+    let totalTokens = 0;
+    const trimmedMessages: Message[] = [];
+
+    for (let i = messages.length - 1; i >= 0; i--) {
+        const msg = messages[i];
+        const msgTokens = estimateTokens(msg.content) + 4; // 4 for metadata
+
+        if (totalTokens + msgTokens <= maxTokens) {
+            trimmedMessages.unshift(msg);
+            totalTokens += msgTokens;
+        } else {
+            break;
+        }
+    }
+
+    return trimmedMessages;
+};
+
+
 interface ChatInputProps {
     setMessages: Dispatch<SetStateAction<Message[]>>;
-    model?: string;
+    messages: Message[];
+    model: string;
     temperature?: number;
-    maxTokens?: number;
-    systemMessage?: string;
-    top_p?: number;
+    maxTokens: number;
+    systemMessage: string;
+    topP?: number;
     setIsGenerating?: Dispatch<SetStateAction<boolean>>;
 }
 
@@ -19,7 +47,8 @@ export const ChatInput: FC<ChatInputProps> = ({
     temperature = 0.7,
     maxTokens = 2048,
     systemMessage,
-    top_p = 0.9,
+    messages,
+    topP = 0.9,
     setIsGenerating
 }) => {
     const [input, setInput] = useState("");
@@ -63,13 +92,14 @@ export const ChatInput: FC<ChatInputProps> = ({
                     model,
                     maxTokens,
                     temperature,
-                    top_p,
+                    topP,
                     apiKey,
                     messages: [
                         {
                             role: "system",
                             content: systemMessage
                         },
+                        ...trimMessageHistory(messages, maxTokens - estimateTokens(systemMessage) - 100),
                         {
                             role: "user",
                             content: input
@@ -95,6 +125,7 @@ export const ChatInput: FC<ChatInputProps> = ({
                     content: "",
                     role: "assistant",
                     timestamp: new Date(),
+                    model: model, // Add the model name to the message
                 },
             ]);
 
@@ -110,7 +141,7 @@ export const ChatInput: FC<ChatInputProps> = ({
                     if (lastMessage.id === assistantMessageId) {
                         return [
                             ...prev.slice(0, -1),
-                            { ...lastMessage, content: assistantContent },
+                            { ...lastMessage, content: assistantContent, model: model },
                         ];
                     }
                     return prev;
@@ -124,6 +155,7 @@ export const ChatInput: FC<ChatInputProps> = ({
                 content: "Sorry, there was an error getting a response from the AI. Please try again.",
                 role: "assistant",
                 timestamp: new Date(),
+                model: model, // Add model name to error message too
             };
             setMessages((prev) => [...prev, errorMessage]);
         } finally {

@@ -6,16 +6,17 @@ import { ChatInput } from "./chat-input";
 import { MessageContent } from "./message-content";
 
 interface ChatProps {
-    model?: string;
-    temperature?: number;
-    maxTokens?: number;
-    top_p?: number;
+    model: string;
+    temperature: number;
+    maxTokens: number;
+    topP: number;
     systemMessage: string;
 }
 
 export const Chat = React.forwardRef<{ handleNewChat: () => void, loadChat: (id: string) => void }, ChatProps>((
     {
         model,
+        topP,
         systemMessage,
         temperature,
         maxTokens,
@@ -29,34 +30,38 @@ export const Chat = React.forwardRef<{ handleNewChat: () => void, loadChat: (id:
 
     // Load messages from localStorage after component mounts on client
     React.useEffect(() => {
-        const saved = localStorage.getItem('chatMessages');
-        if (saved) {
-            setMessages(JSON.parse(saved));
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('chatMessages');
+            if (saved) {
+                setMessages(JSON.parse(saved));
+            }
         }
     }, []);
 
     // Save current chat messages to localStorage
     React.useEffect(() => {
-        localStorage.setItem('chatMessages', JSON.stringify(messages));
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('chatMessages', JSON.stringify(messages));
 
-        // Only save to chat history if there are messages
-        if (messages.length > 0) {
-            // Get existing chat history or initialize empty array
-            const savedChats = localStorage.getItem('chatHistory');
-            const chatHistory = savedChats ? JSON.parse(savedChats) : [];
+            // Only save to chat history if there are messages
+            if (messages.length > 0) {
+                // Get existing chat history or initialize empty array
+                const savedChats = localStorage.getItem('chatHistory');
+                const chatHistory = savedChats ? JSON.parse(savedChats) : [];
 
-            // Find if current chat already exists in history
-            const existingChatIndex = chatHistory.findIndex((chat: { id: string }) => chat.id === chatId);
+                // Find if current chat already exists in history
+                const existingChatIndex = chatHistory.findIndex((chat: { id: string }) => chat.id === chatId);
 
-            // Update or add the current chat
-            if (existingChatIndex >= 0) {
-                chatHistory[existingChatIndex] = { id: chatId, messages };
-            } else {
-                chatHistory.push({ id: chatId, messages });
+                // Update or add the current chat
+                if (existingChatIndex >= 0) {
+                    chatHistory[existingChatIndex] = { id: chatId, messages };
+                } else {
+                    chatHistory.push({ id: chatId, messages });
+                }
+
+                // Save updated chat history
+                localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
             }
-
-            // Save updated chat history
-            localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
         }
     }, [messages, chatId]);
 
@@ -72,20 +77,24 @@ export const Chat = React.forwardRef<{ handleNewChat: () => void, loadChat: (id:
 
     const handleNewChat = () => {
         setMessages([]);
-        localStorage.removeItem('chatMessages');
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('chatMessages');
+        }
         setChatId(Date.now().toString());
     };
 
     // Function to load a specific chat
     const loadChat = (id: string) => {
-        const savedChats = localStorage.getItem('chatHistory');
-        if (savedChats) {
-            const chatHistory = JSON.parse(savedChats);
-            const chat = chatHistory.find((c: { id: string, messages: Message[] }) => c.id === id);
-            if (chat) {
-                setMessages(chat.messages);
-                setChatId(id);
-                localStorage.setItem('chatMessages', JSON.stringify(chat.messages));
+        if (typeof window !== 'undefined') {
+            const savedChats = localStorage.getItem('chatHistory');
+            if (savedChats) {
+                const chatHistory = JSON.parse(savedChats);
+                const chat = chatHistory.find((c: { id: string, messages: Message[] }) => c.id === id);
+                if (chat) {
+                    setMessages(chat.messages);
+                    setChatId(id);
+                    localStorage.setItem('chatMessages', JSON.stringify(chat.messages));
+                }
             }
         }
     };
@@ -107,9 +116,10 @@ export const Chat = React.forwardRef<{ handleNewChat: () => void, loadChat: (id:
                             className={`max-w-[85%] rounded-lg p-4 ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
                         >
                             {message.role === "assistant" ? (
-                                <MessageContent 
-                                    content={message.content} 
-                                    isThinking={isGenerating && message.id === messages[messages.length - 1]?.id} 
+                                <MessageContent
+                                    content={message.content}
+                                    isThinking={isGenerating && message.id === messages[messages.length - 1]?.id}
+                                    model={message.model}
                                 />
                             ) : (
                                 <div className="whitespace-pre-wrap">{message.content}</div>
@@ -119,10 +129,13 @@ export const Chat = React.forwardRef<{ handleNewChat: () => void, loadChat: (id:
                 ))}
                 <div ref={messagesEndRef} />
             </div>
+
             <ChatInput
+                messages={messages}
                 systemMessage={systemMessage}
                 setMessages={setMessages}
                 model={model}
+                topP={topP}
                 temperature={temperature}
                 maxTokens={maxTokens}
                 setIsGenerating={setIsGenerating}

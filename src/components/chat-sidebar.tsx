@@ -15,11 +15,16 @@ interface ChatSidebarProps {
     defaultOpen?: boolean;
     setModel: Dispatch<SetStateAction<string>>;
     model: string;
-    onTemperatureChange?: (temperature: number) => void;
-    onMaxTokensChange?: (maxTokens: number) => void;
+    setTemperature: Dispatch<SetStateAction<number>>;
+    temperature: number;
+    setMaxTokens: Dispatch<SetStateAction<number>>;
+    maxTokens: number;
+    setTopP: Dispatch<SetStateAction<number>>;
+    topP: number;
     onNewChat?: () => void;
     onLoadChat?: (chatId: string) => void;
-    onSystemMessageChange?: Dispatch<SetStateAction<string>>;
+    setSystemMessage: Dispatch<SetStateAction<string>>;
+    systemMessage?: string;
 }
 
 export function ChatSidebar({
@@ -27,14 +32,16 @@ export function ChatSidebar({
     onNewChat,
     setModel,
     model,
-    onTemperatureChange,
-    onMaxTokensChange,
+    setTemperature,
+    temperature,
+    setMaxTokens,
+    maxTokens,
+    setTopP,
+    topP,
+    setSystemMessage,
+    systemMessage,
     onLoadChat,
-    onSystemMessageChange
 }: ChatSidebarProps) {
-    const [temperature, setTemperature] = useState(0.7);
-    const [maxTokens, setMaxTokens] = useState(2048);
-    const [systemMessage, setSystemMessage] = useState("");
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -50,16 +57,15 @@ export function ChatSidebar({
     const selectedModel = models.find(m => m.id === model);
     const contextWindow = selectedModel?.context_window || 8192; // Default para 8192 se não houver modelo
 
-    // Load chat history from localStorage
+    // Load chat history from localStorage after component is mounted
     useEffect(() => {
-        const loadChatHistory = () => {
+        if (mounted) {
             const savedChats = localStorage.getItem('chatHistory');
             if (savedChats) {
                 setChatHistory(JSON.parse(savedChats));
             }
-        };
-        loadChatHistory();
-    }, []);
+        }
+    }, [mounted]);
 
     // Fetch models when a profile is active
     useEffect(() => {
@@ -86,9 +92,20 @@ export function ChatSidebar({
         fetchModels();
     }, [profiles]);
 
-    // After mounting, we can safely show the UI
+    // After mounting, we can safely show the UI and access localStorage
     useEffect(() => {
         setMounted(true);
+
+        // Load saved values from localStorage after component is mounted
+        const savedTemp = localStorage.getItem('temperature');
+        if (savedTemp) setTemperature(parseFloat(savedTemp));
+
+        const savedTokens = localStorage.getItem('maxTokens');
+        if (savedTokens) setMaxTokens(parseInt(savedTokens));
+
+        const savedTopP = localStorage.getItem('topP');
+        if (savedTopP) setTopP(parseFloat(savedTopP));
+
         const profiles = getProfiles();
         setProfiles(profiles);
         const activeProfile = profiles.find(p => p.isActive);
@@ -131,12 +148,16 @@ export function ChatSidebar({
     };
 
     const handleTemperatureChange = (value: number) => {
+        localStorage.setItem('temperature', value.toString());
         setTemperature(value);
-        onTemperatureChange?.(value);
     };
     const handleMaxTokensChange = (value: number) => {
         setMaxTokens(value);
-        onMaxTokensChange?.(value);
+        localStorage.setItem('maxTokens', value.toString());
+    };
+    const handleTopPChange = (value: number) => {
+        setTopP(value);
+        localStorage.setItem('topP', value.toString());
     };
     const handleModelChange = (value: string) => {
         const selectedModel = models.find(m => m.id === value);
@@ -144,7 +165,6 @@ export function ChatSidebar({
             const newContextWindow = selectedModel.context_window;
             if (maxTokens > newContextWindow) {
                 setMaxTokens(newContextWindow);
-                onMaxTokensChange?.(newContextWindow);
             }
         }
         setModel(value);
@@ -206,7 +226,9 @@ export function ChatSidebar({
                                                         e.stopPropagation();
                                                         const updatedHistory = chatHistory.filter(c => c.id !== chat.id);
                                                         setChatHistory(updatedHistory);
-                                                        localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
+                                                        if (typeof window !== 'undefined') {
+                                                            localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
+                                                        }
                                                         if (onNewChat) onNewChat(); // Reset to new chat if the current chat is deleted
                                                     }}
                                                     className="p-1 hover:bg-destructive/20 rounded ml-2"
@@ -264,7 +286,6 @@ export function ChatSidebar({
                                         value={systemMessage}
                                         onChange={(e) => {
                                             setSystemMessage(e.target.value);
-                                            onSystemMessageChange?.(e.target.value);
                                         }}
                                     />
                                 </div>
@@ -284,12 +305,13 @@ export function ChatSidebar({
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Top P</label>
+                                    <label className="text-sm font-medium">Top P: {topP}</label>
                                     <Slider
                                         min={0}
                                         max={1}
                                         step={0.05}
-                                        value={[0.9]}
+                                        value={[topP]}
+                                        onValueChange={(value) => handleTopPChange(value[0])}
                                     />
                                     <p className="text-xs text-muted-foreground">
                                         Controls diversity via nucleus sampling

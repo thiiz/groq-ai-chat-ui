@@ -3,4 +3,5 @@ export interface Message {
     content: string;
     role: "user" | "assistant";
     timestamp: Date;
+    model?: string; // Optional field to store the AI model name
 }

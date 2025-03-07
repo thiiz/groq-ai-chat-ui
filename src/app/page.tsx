@@ -6,7 +6,7 @@ import { ChatSidebar } from "@/components/chat-sidebar";
 import * as React from "react";
 
 export default function Home() {
-  const [model, setModel] = React.useState("gemini-2.0-flash");
+  const [model, setModel] = React.useState("");
   const [temperature, setTemperature] = React.useState(0.7);
   const [maxTokens, setMaxTokens] = React.useState(2048);
   const [systemMessage, setSystemMessage] = React.useState("");
@@ -26,7 +26,8 @@ export default function Home() {
     <div className="flex h-screen overflow-hidden">
       <ChatSidebar
         defaultOpen={true}
-        onModelChange={setModel}
+        setModel={setModel}
+        model={model}
         onTemperatureChange={setTemperature}
         onMaxTokensChange={setMaxTokens}
         onNewChat={handleNewChat}

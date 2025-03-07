@@ -13,7 +13,8 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 interface ChatSidebarProps {
     defaultOpen?: boolean;
-    onModelChange?: (model: string) => void;
+    setModel: Dispatch<SetStateAction<string>>;
+    model: string;
     onTemperatureChange?: (temperature: number) => void;
     onMaxTokensChange?: (maxTokens: number) => void;
     onNewChat?: () => void;
@@ -24,7 +25,8 @@ interface ChatSidebarProps {
 export function ChatSidebar({
     defaultOpen = true,
     onNewChat,
-    onModelChange,
+    setModel,
+    model,
     onTemperatureChange,
     onMaxTokensChange,
     onLoadChat,
@@ -32,7 +34,6 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
     const [temperature, setTemperature] = useState(0.7);
     const [maxTokens, setMaxTokens] = useState(2048);
-    const [model, setModel] = useState("llama-3.3-70b-versatile");
     const [systemMessage, setSystemMessage] = useState("");
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
@@ -92,10 +93,9 @@ export function ChatSidebar({
         setProfiles(profiles);
         const activeProfile = profiles.find(p => p.isActive);
         if (activeProfile?.lastUsedModel) {
-            setModel(activeProfile.lastUsedModel);
-            onModelChange?.(activeProfile.lastUsedModel);
+            setModel(activeProfile?.lastUsedModel);
         }
-    }, [onModelChange]);
+    }, [setModel]);
 
     const handleAddProfile = () => {
         try {
@@ -148,9 +148,6 @@ export function ChatSidebar({
             }
         }
         setModel(value);
-        onModelChange?.(value);
-
-        // Salvar o último modelo usado no perfil ativo
         const activeProfile = profiles.find(p => p.isActive);
         if (activeProfile) {
             setActiveProfile(activeProfile.id, value);

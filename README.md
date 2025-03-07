@@ -20,7 +20,6 @@ Follow these steps to set up the project locally:
 git clone https://github.com/yourusername/ziht-ai-chat.git
 cd ziht-ai-chat
  ```
-```
 
 2. Install dependencies:
 ```bash

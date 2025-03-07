@@ -17,8 +17,8 @@ Follow these steps to set up the project locally:
 ### Setup Instructions
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/ziht-ai-chat.git
-cd ziht-ai-chat
+git clone https://github.com/yourusername/groq-ai-chat-ui.git
+cd groq-ai-chat-ui
  ```
 
 2. Install dependencies:

@@ -2,9 +2,8 @@
 
 import { Message } from "@/@types/message";
 import * as React from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { ChatInput } from "./chat-input";
+import { MessageContent } from "./message-content";
 
 interface ChatProps {
     model?: string;
@@ -14,7 +13,7 @@ interface ChatProps {
     systemMessage: string;
 }
 
-export const Chat = React.forwardRef<{ handleNewChat: () => void }, ChatProps>((
+export const Chat = React.forwardRef<{ handleNewChat: () => void, loadChat: (id: string) => void }, ChatProps>((
     {
         model,
         systemMessage,
@@ -26,6 +25,7 @@ export const Chat = React.forwardRef<{ handleNewChat: () => void }, ChatProps>((
     // Initialize with empty array to avoid hydration mismatch
     const [messages, setMessages] = React.useState<Message[]>([]);
     const [chatId, setChatId] = React.useState<string>(() => Date.now().toString());
+    const [isGenerating, setIsGenerating] = React.useState(false);
 
     // Load messages from localStorage after component mounts on client
     React.useEffect(() => {
@@ -97,27 +97,23 @@ export const Chat = React.forwardRef<{ handleNewChat: () => void }, ChatProps>((
 
     return (
         <div className="flex flex-col h-full max-h-screen w-full" data-chat-ref>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 {messages.map((message) => (
                     <div
                         key={message.id}
                         className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                     >
                         <div
-                            className={`max-w-[80%] rounded-lg p-3 ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted prose dark:prose-invert prose-sm max-w-none"}`}
+                            className={`max-w-[85%] rounded-lg p-4 ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
                         >
-                            <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                    think: ({ node, ...props }) => (
-                                        <div className="p-2 my-2 bg-accent/20 border border-accent rounded-md italic">
-                                            {props.children}
-                                        </div>
-                                    )
-                                }}
-                            >
-                                {message.content}
-                            </ReactMarkdown>
+                            {message.role === "assistant" ? (
+                                <MessageContent 
+                                    content={message.content} 
+                                    isThinking={isGenerating && message.id === messages[messages.length - 1]?.id} 
+                                />
+                            ) : (
+                                <div className="whitespace-pre-wrap">{message.content}</div>
+                            )}
                         </div>
                     </div>
                 ))}
@@ -129,6 +125,7 @@ export const Chat = React.forwardRef<{ handleNewChat: () => void }, ChatProps>((
                 model={model}
                 temperature={temperature}
                 maxTokens={maxTokens}
+                setIsGenerating={setIsGenerating}
             />
         </div>
     );

@@ -2,6 +2,8 @@
 
 import { Message } from "@/@types/message";
 import * as React from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { ChatInput } from "./chat-input";
 
 interface ChatProps {
@@ -102,9 +104,20 @@ export const Chat = React.forwardRef<{ handleNewChat: () => void }, ChatProps>((
                         className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                     >
                         <div
-                            className={`max-w-[80%] rounded-lg p-3 ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                            className={`max-w-[80%] rounded-lg p-3 ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted prose dark:prose-invert prose-sm max-w-none"}`}
                         >
-                            {message.content}
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                    think: ({ node, ...props }) => (
+                                        <div className="p-2 my-2 bg-accent/20 border border-accent rounded-md italic">
+                                            {props.children}
+                                        </div>
+                                    )
+                                }}
+                            >
+                                {message.content}
+                            </ReactMarkdown>
                         </div>
                     </div>
                 ))}

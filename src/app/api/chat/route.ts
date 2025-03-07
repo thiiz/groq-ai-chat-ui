@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
     try {
-        const { model, maxTokens, temperature, messages, apiKey } = await request.json();
+        const { model, maxTokens, temperature, messages, apiKey, topP } = await request.json();
 
         // Validate required parameters
         if (!apiKey) {
@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
             model: model,
             temperature: temperature,
             max_completion_tokens: maxTokens,
+            top_p: topP,
             stop: null,
             stream: true,
         });

@@ -9,6 +9,8 @@ interface ChatInputProps {
     temperature?: number;
     maxTokens?: number;
     systemMessage?: string;
+    top_p?: number;
+    setIsGenerating?: Dispatch<SetStateAction<boolean>>;
 }
 
 export const ChatInput: FC<ChatInputProps> = ({
@@ -16,7 +18,9 @@ export const ChatInput: FC<ChatInputProps> = ({
     model = "llama-3.3-70b-versatile",
     temperature = 0.7,
     maxTokens = 2048,
-    systemMessage
+    systemMessage,
+    top_p = 0.9,
+    setIsGenerating
 }) => {
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +52,7 @@ export const ChatInput: FC<ChatInputProps> = ({
         }
 
         setIsLoading(true);
+        setIsGenerating?.(true);
         try {
             const response = await fetch('/api/chat', {
                 method: 'POST',
@@ -58,6 +63,7 @@ export const ChatInput: FC<ChatInputProps> = ({
                     model,
                     maxTokens,
                     temperature,
+                    top_p,
                     apiKey,
                     messages: [
                         {
@@ -122,6 +128,7 @@ export const ChatInput: FC<ChatInputProps> = ({
             setMessages((prev) => [...prev, errorMessage]);
         } finally {
             setIsLoading(false);
+            setIsGenerating?.(false);
         }
     };
 

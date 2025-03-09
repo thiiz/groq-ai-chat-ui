@@ -119,6 +119,7 @@ export default function Home() {
       <div className="flex-1 flex flex-col relative border-l">
         {isMobile && <MobileSidebar {...sidebarProps} />}
         <Chat
+        
           systemMessage={systemMessage}
           ref={chatRef}
           model={model}

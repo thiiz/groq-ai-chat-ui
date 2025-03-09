@@ -1,16 +1,8 @@
 
-import { GroqModel } from '@/@types/GroqModel';
-import Groq from 'groq-sdk';
-import { ModelListResponse } from 'groq-sdk/resources/models.mjs';
+import { createGroqService } from '@/services/groq-service';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Define the Groq API model type to match what's actually returned
-
-
-// Define type for grouped models
-interface GroupedModels {
-    [key: string]: GroqModel[];
-}
+// Using the service layer for better separation of concerns
 
 export async function GET(request: NextRequest) {
     try {
@@ -23,36 +15,12 @@ export async function GET(request: NextRequest) {
                 { status: 400 }
             );
         }
-        const groq = new Groq({ apiKey: apiKey.trim() });
-        const models: ModelListResponse = await groq.models.list();
 
-        // Group models by owner
-        const groupedModels: GroupedModels = {};
+        // Use the GroqService to handle model fetching and grouping
+        const groqService = createGroqService(apiKey);
+        const modelsResponse = await groqService.getModels();
 
-        if (models.data && Array.isArray(models.data)) {
-            models.data.forEach((model: GroqModel) => {
-                const typedModel = {
-                    id: model.id || '',
-                    object: model.object || '',
-                    created: model.created || 0,
-                    owned_by: model.owned_by || '',
-                    active: model.active ?? false,
-                    context_window: model.context_window || 0,
-                    public_apps: null
-                };
-                const owner = typedModel.owned_by || 'Unknown';
-                if (!groupedModels[owner]) {
-                    groupedModels[owner] = [];
-                }
-                groupedModels[owner].push(typedModel);
-            });
-        }
-
-        // Return both the original models list and the grouped models
-        return NextResponse.json({
-            ...models,
-            groupedByOwner: groupedModels
-        });
+        return NextResponse.json(modelsResponse);
     } catch (error: unknown) {
         console.error('Error fetching models:', error);
         return NextResponse.json(

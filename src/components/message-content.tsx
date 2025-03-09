@@ -2,7 +2,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Check, Copy } from 'lucide-react';
+import { Check, Clock, Copy } from 'lucide-react';
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -12,9 +12,10 @@ interface MessageContentProps {
     content: string;
     isThinking?: boolean;
     model?: string; // Add model property
+    isUserMessage?: boolean; // Add property to identify user messages
 }
 
-export const MessageContent: React.FC<MessageContentProps> = ({ content, isThinking = false, model }) => {
+export const MessageContent: React.FC<MessageContentProps> = ({ content, isThinking = false, model, isUserMessage = false }) => {
     const startTimeRef = React.useRef(new Date());
     const [thinkingDuration, setThinkingDuration] = React.useState<string | null>(null);
     const [copiedCode, setCopiedCode] = React.useState<string | null>(null);
@@ -70,23 +71,27 @@ export const MessageContent: React.FC<MessageContentProps> = ({ content, isThink
         const isCopied = copiedCode === children;
 
         return (
-            <div className="relative group">
-                <button
-                    onClick={() => handleCopyCode(children)}
-                    className="absolute top-2 right-2 p-1 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label="Copy code"
-                >
-                    {isCopied ? (
-                        <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                        <Copy className="h-4 w-4" />
-                    )}
-                </button>
+            <div className="relative group rounded-xl overflow-hidden border border-border/50 my-5 shadow-md transition-all hover:shadow-lg hover:border-primary/30">
+                <div className="bg-muted/80 px-4 py-2.5 text-xs font-mono flex items-center justify-between border-b border-border/50 backdrop-blur-sm">
+                    <span className="text-muted-foreground font-medium">{language}</span>
+                    <button
+                        onClick={() => handleCopyCode(children)}
+                        className="p-1.5 rounded-md hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all duration-200"
+                        aria-label="Copy code"
+                    >
+                        {isCopied ? (
+                            <Check className="h-4 w-4 text-primary" />
+                        ) : (
+                            <Copy className="h-4 w-4" />
+                        )}
+                    </button>
+                </div>
                 <SyntaxHighlighter
                     style={vscDarkPlus}
                     language={language}
                     PreTag="div"
-                    className="rounded-md text-sm my-4"
+                    className="text-sm !bg-muted/30 !m-0 !p-6"
+                    showLineNumbers
                 >
                     {children}
                 </SyntaxHighlighter>
@@ -98,32 +103,33 @@ export const MessageContent: React.FC<MessageContentProps> = ({ content, isThink
         <>
             {/* Model name display */}
             {model && (
-                <div className="text-xs text-muted-foreground font-medium mb-1 flex items-center">
-                    <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-sm">
-                        {model}
+                <div className={`text-xs text-muted-foreground font-medium mb-3 flex ${isUserMessage ? "justify-end" : "justify-start"} items-center gap-2`}>
+                    <span className="bg-primary/15 text-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm transition-all hover:bg-primary/20 hover:shadow-md">
+                        <Clock className="h-3 w-3" />
+                        <span className="font-medium">{model}</span>
                     </span>
                 </div>
             )}
-            <div className="message-content space-y-4">
+            <div className={`message-content space-y-4 ${isUserMessage ? "items-end" : "items-start"}`}>
 
 
                 {/* Thinking content with animation */}
                 {thinkingContent && (
-                    <div className="thinking-content mb-3 border-b border-border pb-3">
-                        <div className="flex items-center gap-2 mb-2">
+                    <div className={`thinking-content mb-5 ${isUserMessage ? "border-r-2 pr-4 text-right" : "border-l-2 pl-4"} border-primary/40 pb-3`}>
+                        <div className={`flex items-center gap-2 mb-3 ${isUserMessage ? "justify-end" : "justify-start"}`}>
                             <div className="thinking-animation flex gap-1">
-                                <span className="h-2 w-2 bg-primary/60 rounded-full animate-pulse"
+                                <span className="h-2 w-2 bg-primary/70 rounded-full animate-pulse"
                                     style={{ animationDelay: "0ms" }} />
-                                <span className="h-2 w-2 bg-primary/60 rounded-full animate-pulse"
+                                <span className="h-2 w-2 bg-primary/70 rounded-full animate-pulse"
                                     style={{ animationDelay: "300ms" }} />
-                                <span className="h-2 w-2 bg-primary/60 rounded-full animate-pulse"
+                                <span className="h-2 w-2 bg-primary/70 rounded-full animate-pulse"
                                     style={{ animationDelay: "600ms" }} />
                             </div>
-                            <span className="text-xs font-medium text-muted-foreground">
-                                {isThinking ? "Thinking" : `Thinked (${thinkingDuration})`}
+                            <span className="text-xs font-medium text-primary/80">
+                                {isThinking ? "Thinking" : `Thought process (${thinkingDuration})`}
                             </span>
                         </div>
-                        <div className="bg-muted/50 rounded-md p-3 text-sm text-muted-foreground">
+                        <div className="bg-primary/5 rounded-xl p-4 text-sm text-muted-foreground shadow-md border border-primary/10">
                             <ReactMarkdown
                                 components={{
                                     code: ({ className, children, ...props }) => {
@@ -133,7 +139,7 @@ export const MessageContent: React.FC<MessageContentProps> = ({ content, isThink
                                                 {String(children).replace(/\n$/, "")}
                                             </CodeBlock>
                                         ) : (
-                                            <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
+                                            <code className="bg-muted/70 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
                                                 {children}
                                             </code>
                                         );
@@ -148,13 +154,16 @@ export const MessageContent: React.FC<MessageContentProps> = ({ content, isThink
 
                 {/* Loading animation when message is being generated */}
                 {isThinking && (
-                    <div className="thinking-animation flex gap-1 mb-2">
-                        <span className="h-2 w-2 bg-primary/60 rounded-full animate-pulse"
-                            style={{ animationDelay: "0ms" }} />
-                        <span className="h-2 w-2 bg-primary/60 rounded-full animate-pulse"
-                            style={{ animationDelay: "300ms" }} />
-                        <span className="h-2 w-2 bg-primary/60 rounded-full animate-pulse"
-                            style={{ animationDelay: "600ms" }} />
+                    <div className="flex items-center gap-2 mb-3 p-2 rounded-lg bg-primary/5 inline-flex">
+                        <div className="thinking-animation flex gap-1">
+                            <span className="h-2 w-2 bg-primary/60 rounded-full animate-pulse"
+                                style={{ animationDelay: "0ms" }} />
+                            <span className="h-2 w-2 bg-primary/60 rounded-full animate-pulse"
+                                style={{ animationDelay: "300ms" }} />
+                            <span className="h-2 w-2 bg-primary/60 rounded-full animate-pulse"
+                                style={{ animationDelay: "600ms" }} />
+                        </div>
+                        <span className="text-xs font-medium text-primary/80">Generating response...</span>
                     </div>
                 )}
 
@@ -163,9 +172,10 @@ export const MessageContent: React.FC<MessageContentProps> = ({ content, isThink
                     "prose prose-sm dark:prose-invert max-w-none",
                     "prose-headings:font-semibold prose-headings:text-foreground",
                     "prose-h1:text-xl prose-h2:text-lg prose-h3:text-base",
-                    "prose-p:my-2 prose-p:leading-relaxed",
-                    "prose-pre:bg-muted prose-pre:border prose-pre:border-border",
-                    "prose-code:text-primary"
+                    "prose-p:my-3 prose-p:leading-relaxed",
+                    "prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 prose-pre:border-none",
+                    "prose-code:text-primary prose-a:text-primary hover:prose-a:text-primary/80 prose-a:no-underline hover:prose-a:underline",
+                    isUserMessage && "text-right"
                 )}>
                     <ReactMarkdown
                         components={{
@@ -179,17 +189,27 @@ export const MessageContent: React.FC<MessageContentProps> = ({ content, isThink
                                         {String(children).replace(/\n$/, "")}
                                     </CodeBlock>
                                 ) : (
-                                    <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
+                                    <code className="bg-primary/10 px-1.5 py-0.5 rounded text-sm font-mono shadow-sm" {...props}>
                                         {children}
                                     </code>
                                 );
                             },
-                            ul: ({ ...props }) => <ul className="list-disc pl-6 my-2" {...props} />,
-                            ol: ({ ...props }) => <ol className="list-decimal pl-6 my-2" {...props} />,
+                            ul: ({ ...props }) => <ul className="list-disc pl-6 my-2 space-y-1" {...props} />,
+                            ol: ({ ...props }) => <ol className="list-decimal pl-6 my-2 space-y-1" {...props} />,
                             li: ({ ...props }) => <li className="my-1" {...props} />,
                             blockquote: ({ ...props }) => (
-                                <blockquote className="border-l-4 border-primary/30 pl-4 italic my-2" {...props} />
+                                <blockquote className="border-l-4 border-primary/30 pl-4 italic my-3 text-muted-foreground bg-muted/30 py-2 pr-2 rounded-r-md" {...props} />
                             ),
+                            a: ({ ...props }) => (
+                                <a className="text-primary underline hover:text-primary/80 transition-colors" {...props} />
+                            ),
+                            table: ({ ...props }) => (
+                                <div className="overflow-x-auto my-4">
+                                    <table className="border-collapse border border-border w-full text-sm" {...props} />
+                                </div>
+                            ),
+                            th: ({ ...props }) => <th className="border border-border bg-muted p-2 text-left font-medium" {...props} />,
+                            td: ({ ...props }) => <td className="border border-border p-2" {...props} />,
                         }}
                     >
                         {mainContent}

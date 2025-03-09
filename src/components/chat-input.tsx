@@ -1,7 +1,8 @@
 "use client"
 import { Message } from "@/@types/message";
 import { getActiveApiKey } from "@/lib/profile";
-import { Dispatch, FC, FormEvent, SetStateAction, useState } from "react";
+import { Send, Smile } from "lucide-react";
+import { Dispatch, FC, FormEvent, SetStateAction, useEffect, useRef, useState } from "react";
 
 // Function to estimate tokens in a string (rough approximation)
 const estimateTokens = (text: string): number => {
@@ -39,6 +40,8 @@ interface ChatInputProps {
     systemMessage: string;
     topP?: number;
     setIsGenerating?: Dispatch<SetStateAction<boolean>>;
+    inputValue?: string;
+    setInputValue?: Dispatch<SetStateAction<string>>;
 }
 
 export const ChatInput: FC<ChatInputProps> = ({
@@ -49,10 +52,27 @@ export const ChatInput: FC<ChatInputProps> = ({
     systemMessage,
     messages,
     topP = 0.9,
-    setIsGenerating
+    setIsGenerating,
+    inputValue = "",
+    setInputValue
 }) => {
-    const [input, setInput] = useState("");
+    const [input, setInput] = useState(inputValue);
     const [isLoading, setIsLoading] = useState(false);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        setInput(inputValue);
+        setInputValue?.("");
+    }, [inputValue, setInputValue]);
+
+    // Auto-resize textarea as content grows
+    useEffect(() => {
+        const textarea = textareaRef.current;
+        if (textarea) {
+            textarea.style.height = "auto";
+            textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+        }
+    }, [input]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -164,24 +184,62 @@ export const ChatInput: FC<ChatInputProps> = ({
         }
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        // Submit on Enter (without Shift)
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit(e as unknown as FormEvent);
+        }
+    };
+
     return (
-        <form onSubmit={handleSubmit} className="p-4 border-t">
-            <div className="flex gap-2">
-                <input
-                    type="text"
+        <form onSubmit={handleSubmit} className="p-3 sm:p-5 border-t bg-background/95 backdrop-blur sticky bottom-0">
+            {isLoading && (
+                <div className="mb-2 text-sm text-muted-foreground flex items-center justify-center">
+                    <div className="h-3 w-3 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Generating response...
+                </div>
+            )}
+            <div className="relative flex items-end rounded-xl border bg-background shadow-md focus-within:ring-2 focus-within:ring-primary/50 transition-all duration-200 hover:border-primary/30 hover:shadow-lg">
+                <textarea
+                    ref={textareaRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Type your message..."
-                    className="flex-1 min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type a message..."
+                    rows={1}
+                    className="flex-1 min-w-0 resize-none border-0 bg-transparent px-5 py-4 text-sm focus:outline-none disabled:opacity-50 placeholder:text-muted-foreground/70 font-medium flex items-center leading-relaxed"
+                    style={{ display: "flex", alignItems: "center" }}
                     disabled={isLoading}
                 />
-                <button
-                    type="submit"
-                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-                    disabled={isLoading}
-                >
-                    {isLoading ? "Sending..." : "Send"}
-                </button>
+
+                <div className="flex items-center px-3 sm:px-4 py-3 gap-2 sm:gap-3">
+                    <button
+                        type="button"
+                        className="p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200"
+                        title="Add emoji"
+                        disabled={isLoading}
+                    >
+                        <Smile className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </button>
+
+                    <button
+                        type="submit"
+                        className="inline-flex items-center justify-center rounded-full text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 shadow-sm hover:shadow-md"
+                        disabled={isLoading || !input.trim()}
+                        aria-label="Send message"
+                    >
+                        {isLoading ? (
+                            <div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                            <Send className="h-5 w-5" />
+                        )}
+                    </button>
+                </div>
+            </div>
+
+            <div className="mt-3 text-xs text-muted-foreground text-center hidden sm:flex justify-center items-center gap-1">
+                <span>Press</span> <kbd className="px-1.5 py-0.5 bg-muted/50 border border-border/30 rounded-md text-xs font-mono shadow-sm">Enter</kbd> <span>to send,</span> <kbd className="px-1.5 py-0.5 bg-muted/50 border border-border/30 rounded-md text-xs font-mono shadow-sm">Shift+Enter</kbd> <span>for new line</span>
             </div>
         </form>
     )
